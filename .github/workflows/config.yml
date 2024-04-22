@@ -40,7 +40,8 @@ jobs:
       - name: setup yarn
         run: |
           npm install -g yarn
-          npm install -g esbuild 
+          npm install -g esbuild
+          npm install -g tailwindcss 
       - name: cache yarn
         uses: actions/cache@v2
         id: yarn-cache
