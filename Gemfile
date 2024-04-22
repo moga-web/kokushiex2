@@ -55,7 +55,7 @@ group :development, :test do
   gem "rubocop-rails", require: false
   gem 'rubocop-rspec', require: false
   gem 'rubocop-factory_bot', require: false
-  
+  gem 'rspec-rails'
 
   # Reduces boot times through caching; required in config/boot.rb
   gem "bootsnap", require: false

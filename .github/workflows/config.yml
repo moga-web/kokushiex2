@@ -1,0 +1,108 @@
+name: Test
+on: [push]
+jobs:
+  rspec:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.2-bookworm
+        ports:
+          - 5432:5432
+        env:
+          TZ: "Asia/Tokyo"
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: hello
+          POSTGRES_DB: kokushiex
+    container:
+      image: ruby:3.3.0
+    env:
+      RAILS_ENV: test
+    steps:
+      - uses: actions/checkout@v2
+      - name: bundler config
+        run: bundle config set path 'vendor/bundle'
+      - name: cache gems
+        id: cache-gems
+        uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: setup bundle
+        if: steps.cache-gems.outputs.cache-hit != 'true'
+        run: |
+          bundle install --jobs 4 --retry 3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      - name: setup yarn
+        run: |
+          npm install -g yarn
+          npm install -g esbuild
+          npm install -g tailwindcss 
+      - name: cache yarn
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: yarn install
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn install --check-files
+      - name: build js
+        run: yarn build
+      - name: build css
+        run: yarn build:css
+      - name: setup db schema
+        run: |
+          bin/rails db:create
+          bin/rails db:migrate
+      - name: run spec
+        run: bundle exec rspec
+
+  rubocop:
+    runs-on: ubuntu-latest
+    container:
+      image: ruby:3.3.0
+    steps:
+      - uses: actions/checkout@v2
+      - name: bundler config
+        run: bundle config set path 'vendor/bundle'
+      - name: Cache gems
+        id: cache-gems
+        uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: setup bundle
+        if: steps.cache-gems.outputs.cache-hit != 'true'
+        run: bundle install --jobs 4 --retry 3
+      - name: run rubocop
+        run: bundle exec rubocop
+  erblint:
+    runs-on: ubuntu-latest
+    container:
+      image: ruby:3.3.0
+    steps:
+      - uses: actions/checkout@v2
+      - name: bundler config
+        run: bundle config set path 'vendor/bundle'
+      - name: Cache gems
+        id: cache-gems
+        uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: setup bundle
+        if: steps.cache-gems.outputs.cache-hit != 'true'
+        run: bundle install --jobs 4 --retry 3
+      - name: run erblint
+        run: bundle exec erblint .
